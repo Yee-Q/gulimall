@@ -1,8 +1,11 @@
 <template>
   <div>
-    <el-tree :data="menus" :props="defaultProps" @node-click="handleNodeClick"
-             :expand-on-click-node="false" show-checkbox node-key="catId" :default-expanded-keys="expandedKey" draggable :allow-drop="allowDrop"
-              @node-drop="handleDrop">
+    <el-switch v-model="draggable" active-text="开启拖拽" inactive-text="关闭拖拽"></el-switch>
+    <el-button v-if="draggable" @click="batchSave">批量保存</el-button>
+    <el-tree :data="menus" :props="defaultProps"
+             :expand-on-click-node="false" show-checkbox node-key="catId" :default-expanded-keys="expandedKey" draggable
+             :allow-drop="allowDrop" :draggable="draggable"
+             @node-drop="handleDrop">
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
         <span>
@@ -37,6 +40,8 @@
   export default {
     data() {
       return {
+        pCid: [],
+        draggable: false,
         updateNodes: [],
         maxLevel: 0,
         title: "",
@@ -71,6 +76,7 @@
           pCid = dropNode.data.catId;
           siblings = dropNode.childNodes;
         }
+        this.pCid.push(pCid);
         // 当前拖拽节点的最新顺序
         for (let i = 0; i < siblings.length; i++) {
           if (siblings[i].data.catId === draggingNode.data.catId) {
@@ -99,9 +105,10 @@
           // 刷新出新的菜单
           this.getMenus();
           // 设置需要默认展开的菜单
-          this.expandedKey = [pCid];
+          this.expandedKey = [this.pCid];
           this.updateNodes = [];
           this.maxLevel = 0;
+          this.pCid = 0;
         });
       },
       updateChildNodeLevel(node) {
@@ -112,6 +119,24 @@
             this.updateChildNodeLevel(node.childNodes[i]);
           }
         }
+      },
+      batchSave() {
+        this.$http({
+          url: this.$http.adornUrl("/product/category/update/sort"),
+          method: "post",
+          data: this.$http.adornData(this.updateNodes, false)
+        }).then(({data}) => {
+          this.$message({
+            message: "菜单顺序修改成功",
+            type: "success"
+          });
+          // 刷新出新的菜单
+          this.getMenus();
+          // 设置需要默认展开的菜单
+          this.expandedKey = this.pCid;
+          this.updateNodes = [];
+          this.maxLevel = 0;
+        });
       },
       // 修改三级分类数据
       editCategory() {
@@ -224,7 +249,8 @@
       allowDrop(draggingNode, dropNode, type) {
         // 被拖动的当前节点的总层数
         this.countNodeLevel(draggingNode.data);
-        let deep = (this.maxLevel - draggingNode.data.catLevel) + 1;
+        // 当前正在拖动的节点 + 父节点所在的深度不大于3即可
+        let deep = Math.abs(this.maxLevel - draggingNode.level) + 1;
         if (type === "inner") {
           return (deep + dropNode.level) <= 3;
         } else {
@@ -233,12 +259,12 @@
       },
       countNodeLevel(node) {
         // 找到所有子节点，求出最大深度
-        if (node.children != null && node.children.length > 0) {
-          for (let i = 0; i < node.children.length; i++) {
-            if (node.children[i].catLevel > this.maxLevel) {
-              this.maxLevel = node.children[i].catLevel;
+        if (node.childNodes != null && node.childNodes.length > 0) {
+          for (let i = 0; i < node.childNodes.length; i++) {
+            if (node.childNodes[i].level > this.maxLevel) {
+              this.maxLevel = node.childNodes[i].level;
             }
-            this.countNodeLevel(node.children[i]);
+            this.countNodeLevel(node.childNodes[i]);
           }
         }
       }
