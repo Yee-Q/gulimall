@@ -50,7 +50,7 @@
         prop="showStatus"
         header-align="center"
         align="center"
-        label="显示状态[0-不显示；1-显示]">
+        label="显示状态">
       </el-table-column>
       <el-table-column
         prop="firstLetter"
@@ -118,7 +118,7 @@
       getDataList () {
         this.dataListLoading = true
         this.$http({
-          url: this.$http.adornUrl('/gulimallproduct/brand/list'),
+          url: this.$http.adornUrl('/product/brand/list'),
           method: 'get',
           params: this.$http.adornParams({
             'page': this.pageIndex,
@@ -169,7 +169,7 @@
           type: 'warning'
         }).then(() => {
           this.$http({
-            url: this.$http.adornUrl('/gulimallproduct/brand/delete'),
+            url: this.$http.adornUrl('/product/brand/delete'),
             method: 'post',
             data: this.$http.adornData(ids, false)
           }).then(({data}) => {
